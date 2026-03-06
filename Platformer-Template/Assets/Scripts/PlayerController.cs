@@ -1,10 +1,14 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
     Rigidbody2D rb;
+    SpriteRenderer sr;
     [SerializeField] float xSpeed = 4;
-    Collider2D collider;
+    [SerializeField] float jumpPower = 10;
+
+    Collider2D playerCollider;
 
     Animator animator;
 
@@ -14,14 +18,19 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        collider = GetComponent<Collider2D>();
+        sr = GetComponent<SpriteRenderer>();
+        playerCollider = GetComponent<Collider2D>();
         animator = GetComponent<Animator>();
 
         if(rb == null)
         {
             Debug.Log("Rigidbody 2D is missing. Please add one to the same gameobject as this PlayerController");
         }
-        if (rb == collider)
+        if (sr == null)
+        {
+            Debug.Log("SpriteRenderer is missing. Please add one to the same gameobject as this PlayerController");
+        }
+        if (playerCollider == null)
         {
             Debug.Log("Collider 2D is missing. Please add one to the same gameobject as this PlayerController");
         }
@@ -42,24 +51,24 @@ public class PlayerController : MonoBehaviour
 
         Vector2 direction = Vector2.zero;
 
-        if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
+        if (Keyboard.current.rightArrowKey.isPressed || Keyboard.current.dKey.isPressed)
         {
             direction.x = xSpeed;
         }
-        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
+        if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.aKey.isPressed)
         {
             direction.x = -xSpeed;
         }
-        if ((Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKey(KeyCode.W) ||  Input.GetKey(KeyCode.Space)) && isGrounded())
+        if ((Keyboard.current.upArrowKey.wasPressedThisFrame || Keyboard.current.wKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame) && isGrounded())
         {
-            direction.y = 10;
+            direction.y = jumpPower;
         }
         else
         {
             direction.y = rb.linearVelocity.y;
         }
 
-        if (Input.GetKey(KeyCode.UpArrow) && direction.y > 0)
+        if ((Keyboard.current.upArrowKey.isPressed || Keyboard.current.wKey.isPressed || Keyboard.current.spaceKey.isPressed) && direction.y > 0)
         {
             rb.gravityScale = 1.5f;
         }
@@ -70,6 +79,18 @@ public class PlayerController : MonoBehaviour
 
         rb.linearVelocity = direction;
 
+        if(sr != null)
+        {
+            if(direction.x > 0)
+            {
+                sr.flipX = false;
+            }
+            if(direction.x < 0)
+            {
+                sr.flipX = true;
+            }
+        }
+
         if(animator == null)
         {
             return;
@@ -77,15 +98,15 @@ public class PlayerController : MonoBehaviour
 
         
 
-        if(direction.x != 0 && isGrounded() && animator.GetLayerIndex("run") != -1)
+        if(direction.x != 0 && isGrounded())
         {
             animator.Play("run");
         }
-        else if (isGrounded() && animator.GetLayerIndex("idle") != -1)
+        else if (isGrounded())
         {
             animator.Play("idle");
         }
-        else if(animator.GetLayerIndex("jump")!=-1)
+        else 
         {
             animator.Play("jump");
         }
@@ -93,13 +114,13 @@ public class PlayerController : MonoBehaviour
 
     bool isGrounded()
     {
-        if (groundLayerMask == 0 || collider == null)
+        if (groundLayerMask == 0 || playerCollider == null)
         {
             return true;
         }
 
-        RaycastHit2D leftHit = Physics2D.Raycast(collider.bounds.min, Vector2.down, 0.3f, groundLayerMask);
-        RaycastHit2D rightHit = Physics2D.Raycast(new Vector2(collider.bounds.max.x, collider.bounds.min.y), Vector2.down, 0.3f, groundLayerMask);
+        RaycastHit2D leftHit = Physics2D.Raycast(playerCollider.bounds.min, Vector2.down, 0.3f, groundLayerMask);
+        RaycastHit2D rightHit = Physics2D.Raycast(new Vector2(playerCollider.bounds.max.x, playerCollider.bounds.min.y), Vector2.down, 0.3f, groundLayerMask);
 
 
         return leftHit || rightHit;
